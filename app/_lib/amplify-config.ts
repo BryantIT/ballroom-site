@@ -10,8 +10,8 @@ const amplifyConfig: ResourcesConfig = {
         oauth: {
           domain: process.env.NEXT_PUBLIC_COGNITO_DOMAIN!,
           scopes: ["openid", "email", "profile"],
-          redirectSignIn: process.env.NEXT_PUBLIC_COGNITO_REDIRECT_SIGN_IN!.split(","),
-          redirectSignOut: process.env.NEXT_PUBLIC_COGNITO_REDIRECT_SIGN_OUT!.split(","),
+          redirectSignIn: (process.env.NEXT_PUBLIC_COGNITO_REDIRECT_SIGN_IN ?? "").split(",").filter(Boolean),
+          redirectSignOut: (process.env.NEXT_PUBLIC_COGNITO_REDIRECT_SIGN_OUT ?? "").split(",").filter(Boolean),
           responseType: "code",
         },
       },
