@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { confirmSignUp, resendSignUpCode } from "aws-amplify/auth";
 import Link from "next/link";
 
-export default function ConfirmPage() {
+function ConfirmForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const email = searchParams.get("email") ?? "";
@@ -130,5 +130,25 @@ export default function ConfirmPage() {
         </Link>
       </p>
     </div>
+  );
+}
+
+export default function ConfirmPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="w-full max-w-md">
+          <div className="rounded-2xl border border-white/5 bg-navy-800 p-8 shadow-2xl animate-pulse">
+            <div className="h-12 w-12 rounded-full bg-white/5 mb-4" />
+            <div className="h-8 w-48 rounded bg-white/5 mb-3" />
+            <div className="h-4 w-64 rounded bg-white/5 mb-8" />
+            <div className="h-11 w-full rounded-xl bg-white/5 mb-4" />
+            <div className="h-12 w-full rounded-full bg-white/5" />
+          </div>
+        </div>
+      }
+    >
+      <ConfirmForm />
+    </Suspense>
   );
 }
