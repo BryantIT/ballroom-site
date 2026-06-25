@@ -13,9 +13,8 @@ import { runWithAmplifyServerContext } from "@/app/_lib/amplify-server-utils";
  */
 export async function getAuthUser() {
   try {
-    const cookieStore = await cookies();
     return await runWithAmplifyServerContext({
-      nextServerContext: { cookies: () => cookieStore },
+      nextServerContext: { cookies },
       operation: (ctx) => getCurrentUser(ctx),
     });
   } catch {
@@ -23,16 +22,10 @@ export async function getAuthUser() {
   }
 }
 
-/**
- * Returns the full Cognito user attribute set (name, email, etc.).
- * Slightly more expensive than getAuthUser — only call it when you
- * need attributes beyond userId/username.
- */
 export async function getAuthUserAttributes() {
   try {
-    const cookieStore = await cookies();
     return await runWithAmplifyServerContext({
-      nextServerContext: { cookies: () => cookieStore },
+      nextServerContext: { cookies },
       operation: (ctx) => fetchUserAttributes(ctx),
     });
   } catch {
