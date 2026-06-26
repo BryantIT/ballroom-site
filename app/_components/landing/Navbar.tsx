@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useAuth } from "@/app/_components/AuthProvider";
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
+  const { user, loading, signOut } = useAuth();
 
   return (
     <header className="sticky top-0 z-50 border-b border-white/5 bg-navy-900/90 backdrop-blur-md">
@@ -45,19 +47,40 @@ export default function Navbar() {
         </div>
 
         {/* Desktop CTA */}
-        <div className="hidden md:flex items-center gap-4">
-          <Link
-            href="/login"
-            className="text-sm text-slate-400 hover:text-white transition-colors"
-          >
-            Sign In
-          </Link>
-          <Link
-            href="/signup"
-            className="rounded-full bg-gold-500 px-5 py-2 text-sm font-semibold text-navy-900 hover:bg-gold-400 transition-colors"
-          >
-            Get Started
-          </Link>
+        <div className="hidden md:flex items-center gap-4 min-w-[180px] justify-end">
+          {loading ? (
+            <div className="h-8 w-32 rounded-full bg-white/5 animate-pulse" />
+          ) : user ? (
+            <>
+              <Link
+                href="/dashboard"
+                className="text-sm text-slate-400 hover:text-white transition-colors"
+              >
+                My Path
+              </Link>
+              <button
+                onClick={() => signOut()}
+                className="rounded-full border border-white/10 px-5 py-2 text-sm font-semibold text-slate-300 hover:border-white/30 hover:text-white transition-colors"
+              >
+                Sign Out
+              </button>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/login"
+                className="text-sm text-slate-400 hover:text-white transition-colors"
+              >
+                Sign In
+              </Link>
+              <Link
+                href="/signup"
+                className="rounded-full bg-gold-500 px-5 py-2 text-sm font-semibold text-navy-900 hover:bg-gold-400 transition-colors"
+              >
+                Get Started
+              </Link>
+            </>
+          )}
         </div>
 
         {/* Mobile hamburger */}
@@ -104,18 +127,42 @@ export default function Navbar() {
             Dance Styles
           </a>
           <div className="pt-2 flex flex-col gap-3 border-t border-white/5">
-            <Link
-              href="/login"
-              className="text-sm text-slate-400 hover:text-white transition-colors"
-            >
-              Sign In
-            </Link>
-            <Link
-              href="/signup"
-              className="inline-flex justify-center rounded-full bg-gold-500 px-5 py-2.5 text-sm font-semibold text-navy-900 hover:bg-gold-400 transition-colors"
-            >
-              Get Started Free
-            </Link>
+            {loading ? (
+              <div className="h-8 w-full rounded-full bg-white/5 animate-pulse" />
+            ) : user ? (
+              <>
+                <Link
+                  href="/dashboard"
+                  onClick={() => setOpen(false)}
+                  className="text-sm text-slate-300 hover:text-white transition-colors"
+                >
+                  My Path
+                </Link>
+                <button
+                  onClick={() => { setOpen(false); signOut(); }}
+                  className="inline-flex justify-center rounded-full border border-white/10 px-5 py-2.5 text-sm font-semibold text-slate-300 hover:border-white/30 hover:text-white transition-colors"
+                >
+                  Sign Out
+                </button>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  onClick={() => setOpen(false)}
+                  className="text-sm text-slate-400 hover:text-white transition-colors"
+                >
+                  Sign In
+                </Link>
+                <Link
+                  href="/signup"
+                  onClick={() => setOpen(false)}
+                  className="inline-flex justify-center rounded-full bg-gold-500 px-5 py-2.5 text-sm font-semibold text-navy-900 hover:bg-gold-400 transition-colors"
+                >
+                  Get Started Free
+                </Link>
+              </>
+            )}
           </div>
         </div>
       )}
