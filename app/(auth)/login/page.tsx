@@ -2,8 +2,10 @@
 
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { signIn, signInWithRedirect } from "aws-amplify/auth";
+import { signIn, fetchAuthSession } from "aws-amplify/auth";
 import Link from "next/link";
+
+const CLIENT_ID = process.env.NEXT_PUBLIC_COGNITO_USER_POOL_CLIENT_ID!;
 
 function LoginForm() {
   const router = useRouter();
@@ -16,6 +18,22 @@ function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
+  async function syncSession() {
+    const session = await fetchAuthSession();
+    const accessToken = session.tokens?.accessToken?.toString() ?? "";
+    const idToken = session.tokens?.idToken?.toString() ?? "";
+    const username = (session.tokens?.accessToken?.payload?.["username"] ?? "") as string;
+    const refreshToken =
+      localStorage.getItem(
+        `CognitoIdentityServiceProvider.${CLIENT_ID}.${username}.refreshToken`
+      ) ?? "";
+    await fetch("/api/auth/set-session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ accessToken, idToken, refreshToken }),
+    });
+  }
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
@@ -25,6 +43,7 @@ function LoginForm() {
       const { isSignedIn, nextStep } = await signIn({ username: email, password });
 
       if (isSignedIn) {
+        await syncSession();
         router.push(nextPath);
         router.refresh();
         return;
@@ -48,17 +67,10 @@ function LoginForm() {
     }
   }
 
-  async function handleGoogleSignIn() {
+  function handleGoogleSignIn() {
     setError(null);
     setGoogleLoading(true);
-    try {
-      await signInWithRedirect({ provider: "Google" });
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Google sign in failed. Please try again."
-      );
-      setGoogleLoading(false);
-    }
+    window.location.href = "/api/auth/sign-in?provider=Google";
   }
 
   return (
