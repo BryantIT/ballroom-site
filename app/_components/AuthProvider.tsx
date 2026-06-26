@@ -38,7 +38,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const current = await getCurrentUser();
       setUser({ userId: current.userId, username: current.username });
     } catch {
-      setUser(null);
+      // getCurrentUser reads localStorage — fall back to server-side session
+      // (HttpOnly cookies set after Google OAuth or email/password sync)
+      try {
+        const res = await fetch("/api/auth/session");
+        const data = await res.json();
+        setUser(data?.userId ? { userId: data.userId, username: data.username } : null);
+      } catch {
+        setUser(null);
+      }
     } finally {
       setLoading(false);
     }
@@ -49,7 +57,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [fetchUser]);
 
   const signOut = useCallback(async () => {
-    await amplifySignOut();
+    try {
+      await amplifySignOut(); // clears localStorage tokens if present
+    } catch {
+      // no localStorage session — fine
+    }
+    await fetch("/api/auth/clear-session", { method: "POST" });
     setUser(null);
     router.push("/");
     router.refresh();
