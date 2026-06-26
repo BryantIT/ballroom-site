@@ -10,38 +10,45 @@ export default function OAuthCallbackPage() {
   const handled = useRef(false);
 
   useEffect(() => {
-    // Listen for the signIn event that Amplify fires after it exchanges the
-    // OAuth code for tokens and stores them in cookies.
-    const unsubscribe = Hub.listen("auth", ({ payload }) => {
+    function complete() {
       if (handled.current) return;
+      handled.current = true;
+      router.replace("/dashboard");
+    }
 
-      if (payload.event === "signedIn") {
-        handled.current = true;
-        router.replace("/dashboard");
-        router.refresh();
-      }
+    function fail() {
+      if (handled.current) return;
+      handled.current = true;
+      router.replace("/login?error=oauth_failed");
+    }
 
-      if (payload.event === "signInWithRedirect_failure") {
-        handled.current = true;
-        router.replace("/login?error=oauth_failed");
-      }
+    // Listen for Amplify Hub events
+    const unsubscribe = Hub.listen("auth", ({ payload }) => {
+      if (payload.event === "signedIn") complete();
+      if (payload.event === "signInWithRedirect_failure") fail();
     });
 
-    // Fallback: if tokens are already in cookies (e.g. page refreshed after
-    // the Hub event already fired) just navigate immediately.
-    getCurrentUser()
-      .then(() => {
-        if (!handled.current) {
-          handled.current = true;
-          router.replace("/dashboard");
-          router.refresh();
+    // Poll getCurrentUser as a fallback — the Hub event can fire before
+    // the listener is registered, so we need this safety net.
+    let attempts = 0;
+    const interval = setInterval(async () => {
+      attempts++;
+      try {
+        await getCurrentUser();
+        clearInterval(interval);
+        complete();
+      } catch {
+        if (attempts >= 20) {
+          clearInterval(interval);
+          fail();
         }
-      })
-      .catch(() => {
-        // Not signed in yet — Hub listener will handle it
-      });
+      }
+    }, 500);
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      clearInterval(interval);
+    };
   }, [router]);
 
   return (
