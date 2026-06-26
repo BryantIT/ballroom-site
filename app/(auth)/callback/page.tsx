@@ -3,12 +3,11 @@
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Hub } from "aws-amplify/utils";
-// This import is intentional — importing signInWithRedirect triggers the
-// enableOAuthListener side effect, which registers attemptCompleteOAuthFlow
-// with the Amplify singleton. Since Amplify.configure() has already run by
-// the time this module loads, ADD_OAUTH_LISTENER calls it immediately,
-// which reads the PKCE verifier from localStorage and exchanges the auth code.
-import { getCurrentUser, signInWithRedirect as _initOAuthListener } from "aws-amplify/auth";
+import { getCurrentUser } from "aws-amplify/auth";
+// Side-effect import: registers the OAuth completion listener with the Amplify
+// singleton so it calls attemptCompleteOAuthFlow when Amplify.configure() has
+// run with an oauth config — which exchanges the PKCE code for tokens.
+import "aws-amplify/auth/enable-oauth-listener";
 
 export default function OAuthCallbackPage() {
   const router = useRouter();
