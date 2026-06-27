@@ -9,13 +9,21 @@ export default async function DashboardPage() {
   const authUser = await getAuthUser();
   if (!authUser) redirect("/login");
 
-  const queryResult = await Promise.all([
-    db.query.users.findFirst({ where: eq(users.id, authUser.userId) }),
-    db.select().from(userDances).where(eq(userDances.userId, authUser.userId)),
-  ]).catch(() => null);
+  // Use try-catch (not .catch()) so synchronous Proxy throws from db.query/db.select
+  // are also caught when DATABASE_URL is absent or the connection fails.
+  let user: (typeof users.$inferSelect) | undefined;
+  let dances: (typeof userDances.$inferSelect)[] = [];
 
-  const user = queryResult?.[0];
-  const dances = queryResult?.[1] ?? [];
+  try {
+    const [userRow, danceRows] = await Promise.all([
+      db.query.users.findFirst({ where: eq(users.id, authUser.userId) }),
+      db.select().from(userDances).where(eq(userDances.userId, authUser.userId)),
+    ]);
+    user = userRow;
+    dances = danceRows;
+  } catch {
+    // db unavailable — render with empty data
+  }
 
   const displayName = user?.name ?? user?.email?.split("@")[0] ?? "Dancer";
 
