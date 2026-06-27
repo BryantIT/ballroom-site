@@ -9,10 +9,13 @@ export default async function DashboardPage() {
   const authUser = await getAuthUser();
   if (!authUser) redirect("/login");
 
-  const [user, dances] = await Promise.all([
+  const queryResult = await Promise.all([
     db.query.users.findFirst({ where: eq(users.id, authUser.userId) }),
     db.select().from(userDances).where(eq(userDances.userId, authUser.userId)),
-  ]);
+  ]).catch(() => null);
+
+  const user = queryResult?.[0];
+  const dances = queryResult?.[1] ?? [];
 
   const displayName = user?.name ?? user?.email?.split("@")[0] ?? "Dancer";
 
