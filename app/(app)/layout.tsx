@@ -13,16 +13,20 @@ export default async function AppLayout({
   const authUser = await getAuthUser();
   if (!authUser) redirect("/login");
 
-  // Upsert user row on every protected page load — no-op if already exists
-  const attrs = await getAuthUserAttributes();
-  await db
-    .insert(users)
-    .values({
-      id: authUser.userId,
-      email: attrs?.email ?? "",
-      name: attrs?.name ?? null,
-    })
-    .onConflictDoNothing();
+  // Upsert user row on every protected page load — non-critical, skip on db error
+  try {
+    const attrs = await getAuthUserAttributes();
+    await db
+      .insert(users)
+      .values({
+        id: authUser.userId,
+        email: attrs?.email ?? "",
+        name: attrs?.name ?? null,
+      })
+      .onConflictDoNothing();
+  } catch {
+    // db unavailable (e.g. DATABASE_URL not set) — page still renders
+  }
 
   return (
     <div className="flex flex-col min-h-dvh bg-navy-900">
