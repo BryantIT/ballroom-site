@@ -11,9 +11,14 @@ export async function GET(
   request: NextRequest,
   context: { params: Promise<{ slug: string }> }
 ) {
-  handler ??= createAuthRouteHandlers({
-    redirectOnSignInComplete: "/dashboard",
-    redirectOnSignOutComplete: "/",
-  });
-  return handler(request, context as never);
+  try {
+    handler ??= createAuthRouteHandlers({
+      redirectOnSignInComplete: "/dashboard",
+      redirectOnSignOutComplete: "/",
+    });
+    return await handler(request, context as never);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return Response.json({ error: message }, { status: 500 });
+  }
 }
