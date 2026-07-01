@@ -40,6 +40,15 @@ export const practiceTypeEnum = pgEnum("practice_type", [
   "lesson",
 ]);
 
+// ─── Governing Bodies ─────────────────────────────────────────────────────────
+
+export const governingBodies = pgTable("governing_bodies", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  slug: text("slug").notNull().unique(),
+  name: text("name").notNull(),
+  abbreviation: text("abbreviation").notNull(),
+});
+
 // ─── Users ────────────────────────────────────────────────────────────────────
 
 export const users = pgTable("users", {
@@ -52,6 +61,10 @@ export const users = pgTable("users", {
   currentStreak: integer("current_streak").notNull().default(0),
   totalXp: integer("total_xp").notNull().default(0),
   notificationPreferences: jsonb("notification_preferences"),
+  preferredGoverningBodyId: uuid("preferred_governing_body_id").references(
+    () => governingBodies.id,
+    { onDelete: "set null" }
+  ),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
@@ -113,6 +126,11 @@ export const patterns = pgTable(
     levelId: uuid("level_id")
       .notNull()
       .references(() => danceLevels.id, { onDelete: "cascade" }),
+    // null = applies to all governing bodies (generic/universal pattern)
+    governingBodyId: uuid("governing_body_id").references(
+      () => governingBodies.id,
+      { onDelete: "set null" }
+    ),
     name: text("name").notNull(),
     description: text("description"),
     order: smallint("order").notNull().default(0),

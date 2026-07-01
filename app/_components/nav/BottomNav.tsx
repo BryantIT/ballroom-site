@@ -2,18 +2,35 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { LayoutDashboard, Music4, Timer, Trophy, User } from "lucide-react";
 
 const tabs = [
-  { href: "/dashboard", label: "Home", icon: LayoutDashboard },
-  { href: "/dances", label: "Dances", icon: Music4 },
-  { href: "/practice", label: "Practice", icon: Timer },
+  { href: "/dashboard",    label: "Home",         icon: LayoutDashboard },
+  { href: "/dances",       label: "Dances",       icon: Music4 },
+  { href: "/practice",     label: "Practice",     icon: Timer },
   { href: "/achievements", label: "Achievements", icon: Trophy },
-  { href: "/profile", label: "Profile", icon: User },
+  { href: "/profile",      label: "Profile",      icon: User },
 ];
 
 export default function BottomNav() {
   const pathname = usePathname();
+  const [hidden, setHidden] = useState(false);
+
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+
+    function onResize() {
+      // Hide nav when soft keyboard shrinks the viewport by more than 25%
+      setHidden(vv!.height < window.innerHeight * 0.75);
+    }
+
+    vv.addEventListener("resize", onResize);
+    return () => vv.removeEventListener("resize", onResize);
+  }, []);
+
+  if (hidden) return null;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/5 bg-navy-900/95 backdrop-blur-md">

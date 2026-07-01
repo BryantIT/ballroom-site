@@ -6,6 +6,11 @@ import { Amplify } from "aws-amplify";
 // OAuth is handled entirely server-side by createAuthRouteHandlers — omitting
 // loginWith.oauth here prevents the client SDK from detecting the pending OAuth
 // flow and trying to re-exchange an authorization code the server already consumed.
+console.log(
+  "%c Built with love — Bryant Richards",
+  "color:#c9a84c;font-style:italic;font-size:13px;"
+);
+
 Amplify.configure(
   {
     Auth: {
