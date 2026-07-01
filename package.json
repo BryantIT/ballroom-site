@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@aws-amplify/adapter-nextjs": "^1.7.3",
+    "@react-pdf/renderer": "^4.5.1",
     "aws-amplify": "^6.18.0",
     "drizzle-orm": "^0.45.2",
     "lucide-react": "^1.21.0",
