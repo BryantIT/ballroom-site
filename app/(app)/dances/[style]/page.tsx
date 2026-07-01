@@ -5,10 +5,12 @@ import {
   getLevelsForStyle,
   getUserDanceForStyle,
 } from "@/app/_lib/dal/dances";
+import { getPatternsForStyleGrouped } from "@/app/_lib/dal/patterns";
+import Link from "next/link";
 import LevelBadge from "@/app/_components/dance/LevelBadge";
 import LevelSelector from "@/app/_components/dance/LevelSelector";
 import RemoveDanceButton from "@/app/_components/dance/RemoveDanceButton";
-import { addDanceAction } from "@/app/_lib/actions/dances";
+import AddDanceWithHistoryFlow from "@/app/_components/dance/AddDanceWithHistoryFlow";
 
 const CATEGORY_LABELS: Record<string, string> = {
   standard: "International Standard",
@@ -27,16 +29,16 @@ export default async function DanceStylePage({
   const authUser = await getAuthUser();
   if (!authUser) redirect("/login");
 
-  const [styleRow, userDance] = await Promise.all([
-    getDanceStyleBySlug(slug).then((s) => s ?? null),
-    getDanceStyleBySlug(slug).then((s) =>
-      s ? getUserDanceForStyle(authUser.userId, s.id) : null
-    ),
-  ]);
-
+  const styleRow = await getDanceStyleBySlug(slug);
   if (!styleRow) notFound();
 
-  const levels = await getLevelsForStyle(styleRow.id);
+  const [levels, userDance] = await Promise.all([
+    getLevelsForStyle(styleRow.id),
+    getUserDanceForStyle(authUser.userId, styleRow.id),
+  ]);
+
+  // Only pre-fetch patterns for the history modal when the dance isn't added yet
+  const allPatterns = userDance ? [] : await getPatternsForStyleGrouped(styleRow.id);
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-6 space-y-6">
@@ -48,7 +50,12 @@ export default async function DanceStylePage({
         <h2 className="font-display text-3xl font-bold text-white">{styleRow.name}</h2>
         {userDance && (
           <div className="mt-2">
-            <LevelBadge level={userDance.currentLevelId ? levels.find((l) => l.id === userDance.currentLevelId)?.name : null} size="md" />
+            <LevelBadge
+              level={userDance.currentLevelId
+                ? levels.find((l) => l.id === userDance.currentLevelId)?.name ?? null
+                : null}
+              size="md"
+            />
           </div>
         )}
       </div>
@@ -97,12 +104,23 @@ export default async function DanceStylePage({
             </div>
           </div>
 
+          {/* Patterns link */}
+          {userDance.currentLevelId && (
+            <Link
+              href={`/dances/${styleRow.slug}/patterns`}
+              className="flex items-center justify-between rounded-xl border border-white/5 bg-navy-800 px-4 py-3 hover:border-white/15 transition-colors"
+            >
+              <span className="text-sm font-medium text-white">View Patterns</span>
+              <span className="text-xs text-slate-500">Practice checklist →</span>
+            </Link>
+          )}
+
           {/* Remove */}
           <RemoveDanceButton userDanceId={userDance.id} />
         </>
       ) : (
         <>
-          {/* Not added — show progression preview + add button */}
+          {/* Not added — show progression preview */}
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">
               Progression
@@ -120,39 +138,14 @@ export default async function DanceStylePage({
             </div>
           </div>
 
-          <form
-            action={async (formData: FormData) => {
-              "use server";
-              const styleId = formData.get("styleId") as string;
-              const levelId = (formData.get("levelId") as string) || undefined;
-              await addDanceAction(styleId, levelId);
-            }}
-            className="space-y-3"
-          >
-            <input type="hidden" name="styleId" value={styleRow.id} />
-            <div className="space-y-2">
-              <p className="text-sm text-slate-400 text-center">Choose your starting level</p>
-              <div className="grid grid-cols-2 gap-2">
-                {levels.map((level) => (
-                  <button
-                    key={level.id}
-                    type="submit"
-                    name="levelId"
-                    value={level.id}
-                    className="flex items-center justify-center rounded-xl border border-white/5 bg-navy-800 px-4 py-3 hover:border-white/15 transition-colors"
-                  >
-                    <LevelBadge level={level.name} size="md" />
-                  </button>
-                ))}
-              </div>
-              <button
-                type="submit"
-                className="w-full rounded-xl border border-white/5 bg-navy-800 px-4 py-3 text-sm text-slate-400 hover:border-white/15 transition-colors"
-              >
-                Add without a level
-              </button>
-            </div>
-          </form>
+          {/* Level picker + history verification flow */}
+          <AddDanceWithHistoryFlow
+            styleId={styleRow.id}
+            styleSlug={styleRow.slug}
+            styleName={styleRow.name}
+            levels={levels}
+            allPatterns={allPatterns}
+          />
         </>
       )}
     </div>

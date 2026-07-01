@@ -1,11 +1,12 @@
 "use server";
 
+import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { eq, and } from "drizzle-orm";
 import { getAuthUser } from "@/app/_lib/dal/auth";
 import { db } from "@/app/_lib/db";
-import { userDances, users } from "@/app/_lib/db/schema";
+import { userDances, userPatterns, users } from "@/app/_lib/db/schema";
 
 const uuidSchema = z.string().uuid();
 
@@ -82,6 +83,56 @@ export async function updateLevelAction(userDanceId: string, levelId: string | n
   } catch {
     return { error: "Failed to update level" };
   }
+}
+
+export async function addDanceWithHistoryAction({
+  styleId,
+  styleSlug,
+  levelId,
+  knownPatternIds,
+  unknownPatternIds,
+}: {
+  styleId: string;
+  styleSlug: string;
+  levelId: string;
+  knownPatternIds: string[];
+  unknownPatternIds: string[];
+}) {
+  const authUser = await getAuthUser();
+  if (!authUser) return { error: "Not authenticated" };
+
+  if (!uuidSchema.safeParse(styleId).success) return { error: "Invalid style" };
+  if (!uuidSchema.safeParse(levelId).success) return { error: "Invalid level" };
+
+  try {
+    await db
+      .insert(userDances)
+      .values({ userId: authUser.userId, styleId, currentLevelId: levelId })
+      .onConflictDoNothing();
+
+    const records = [
+      ...knownPatternIds.map((id) => ({
+        userId: authUser.userId,
+        patternId: id,
+        status: "mastered" as const,
+      })),
+      ...unknownPatternIds.map((id) => ({
+        userId: authUser.userId,
+        patternId: id,
+        status: "learning" as const,
+      })),
+    ];
+
+    if (records.length > 0) {
+      await db.insert(userPatterns).values(records).onConflictDoNothing();
+    }
+
+    revalidatePath("/dances");
+  } catch {
+    return { error: "Failed to add dance" };
+  }
+
+  redirect(`/dances/${styleSlug}/patterns`);
 }
 
 export async function setPreferredGoverningBodyAction(governingBodyId: string | null) {
